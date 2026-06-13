@@ -1,0 +1,7 @@
+project_root: /home/lrx/Unet/satellite_assimilation_v2
+default_data_root: /data/lrx_true/era_obs/npz
+default_output_dir: /home/lrx/Unet/satellite_assimilation_v2/train_ddp/outputs/meteo_agent_da
+default_stats_file: /data/lrx_true/era_obs/npz/stats.npz
+default_increment_stats: /data/lrx_true/era_obs/npz/increment_stats.npz
+default_split_dir: /home/lrx/Unet/satellite_assimilation_v2/train_ddp/splits/data_efficiency_64
+dry_run: true
