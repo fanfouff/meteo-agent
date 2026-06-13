@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..agent.schemas import ProjectConfig, ToolCall, ToolResult, ToolStatus
+from ..sandbox.executor import CommandExecutor
 from .data_indexer import _resolve_split_file
 
 
@@ -75,9 +76,32 @@ def run_pasnet_runner(call: ToolCall, config: ProjectConfig) -> ToolResult:
         ]
         commands.append({"model": model_name, "exp_name": exp_name, "command": cmd, "shell": " ".join(cmd)})
 
-    summary = f"Built {len(commands)} PASNet-DA command(s) for split {split_hint}; dry_run={config.dry_run}."
+    execution_results = []
+    if not config.dry_run and config.execute_commands and split_file_exists:
+        executor = CommandExecutor(cwd=config.project_root, timeout_seconds=config.command_timeout_seconds)
+        for item in commands:
+            result = executor.run(item["command"])
+            execution_results.append(
+                {
+                    "model": item["model"],
+                    "exp_name": item["exp_name"],
+                    "returncode": result.returncode,
+                    "timed_out": result.timed_out,
+                    "stdout": result.stdout[-4000:],
+                    "stderr": result.stderr[-4000:],
+                }
+            )
+
+    summary = (
+        f"Built {len(commands)} PASNet-DA command(s) for split {split_hint}; "
+        f"dry_run={config.dry_run}; executed={len(execution_results)}."
+    )
     status = ToolStatus.OK if split_file_exists else ToolStatus.ERROR
+    if execution_results and any(item["returncode"] != 0 for item in execution_results):
+        status = ToolStatus.ERROR
     error = None if split_file_exists else "split_file_missing"
+    if status == ToolStatus.ERROR and split_file_exists:
+        error = "command_execution_failed"
     return ToolResult(
         name=call.name,
         status=status,
@@ -86,7 +110,11 @@ def run_pasnet_runner(call: ToolCall, config: ProjectConfig) -> ToolResult:
             "commands": commands,
             "split_file": str(split_file),
             "split_file_exists": split_file_exists,
-            "execute_note": "Commands are not executed by the scaffold. Review GPU and paths first.",
+            "execution_results": execution_results,
+            "execute_note": (
+                "Commands execute only when dry_run=false, execute_commands=true, and risky tools are allowed. "
+                "Review GPU allocation and paths first."
+            ),
         },
         error=error,
     )

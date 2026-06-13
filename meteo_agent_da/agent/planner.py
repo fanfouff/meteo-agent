@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import json
 import re
-from pathlib import Path
+import urllib.error
+import urllib.request
+import os
+from typing import Iterable
 
-from .schemas import AgentPlan, AgentTask, ToolCall
+from .schemas import AgentPlan, AgentTask, ProjectConfig, ToolCall
+from .tool_registry import ToolSpec
 
 
 class HeuristicPlanner:
@@ -107,3 +112,95 @@ class HeuristicPlanner:
     def _extract_int(text: str, key: str, default: int) -> int:
         match = re.search(rf"{key}s?\s*[=: ]\s*(\d+)", text)
         return int(match.group(1)) if match else default
+
+
+class OpenAICompatiblePlanner:
+    """LLM planner for OpenAI-compatible chat completion APIs.
+
+    The planner only decides tool calls. Tool execution remains inside the local
+    registry, so risky commands and verifier checks still go through the harness.
+    """
+
+    def __init__(self, config: ProjectConfig, tool_specs: Iterable[ToolSpec]) -> None:
+        self.config = config
+        self.tool_specs = list(tool_specs)
+
+    def plan(self, task: AgentTask) -> AgentPlan:
+        api_key = os.environ.get(self.config.llm_api_key_env)
+        if not api_key:
+            raise RuntimeError(f"Missing API key env: {self.config.llm_api_key_env}")
+
+        payload = {
+            "model": self.config.llm_model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are the planner of MeteoAgent-DA, a satellite data-assimilation research agent. "
+                        "Return only JSON with keys objective, tool_calls, notes. "
+                        "tool_calls must be a list of objects: {name, arguments, reason}. "
+                        "Use only the provided tools and prefer verifiable tool evidence."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "request": task.request,
+                            "max_steps": task.max_steps,
+                            "available_tools": [
+                                {
+                                    "name": spec.name,
+                                    "description": spec.description,
+                                    "risky": spec.risky,
+                                }
+                                for spec in self.tool_specs
+                            ],
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"},
+        }
+        request = urllib.request.Request(
+            url=self.config.llm_base_url.rstrip("/") + "/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                raw = json.loads(response.read().decode("utf-8"))
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"LLM planner request failed: {exc}") from exc
+
+        content = raw["choices"][0]["message"]["content"]
+        plan_raw = json.loads(content)
+        legal_names = {spec.name for spec in self.tool_specs}
+        calls = []
+        for item in plan_raw.get("tool_calls", [])[: task.max_steps]:
+            name = str(item.get("name", "")).strip()
+            if name not in legal_names:
+                continue
+            args = item.get("arguments") or item.get("args") or {}
+            if not isinstance(args, dict):
+                args = {}
+            calls.append(
+                ToolCall(
+                    name=name,
+                    arguments=args,
+                    reason=str(item.get("reason", "LLM planner selected this tool.")),
+                )
+            )
+        if not calls:
+            calls.append(ToolCall(name="sanity_check", arguments={}, reason="Fallback safety check when LLM returned no valid tools."))
+        return AgentPlan(
+            objective=str(plan_raw.get("objective") or task.request),
+            tool_calls=calls,
+            notes=[str(item) for item in plan_raw.get("notes", [])],
+        )

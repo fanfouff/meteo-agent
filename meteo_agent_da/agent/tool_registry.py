@@ -41,7 +41,7 @@ class ToolRegistry:
                 summary=f"Unknown tool: {call.name}",
                 error="unknown_tool",
             )
-        if spec.risky and config.dry_run is False and call.arguments.get("allow_risky") is not True:
+        if spec.risky and config.dry_run is False and call.arguments.get("allow_risky") is not True and not config.allow_risky_tools:
             return ToolResult(
                 name=call.name,
                 status=ToolStatus.ERROR,

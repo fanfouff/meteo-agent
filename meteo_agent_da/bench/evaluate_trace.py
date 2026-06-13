@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from .pasbench import aggregate_scores, load_jsonl, score_report
+from .verifiers import verify_report
 
 
 def main() -> None:
@@ -29,10 +30,22 @@ def main() -> None:
                 }
             )
             continue
-        score = score_report(matched[0], report)
+        task = matched[0]
+        score = score_report(task, report)
+        score.update(verify_report(report, required=_required_verifiers(task.category)))
         scores.append({"matched": True, "report": item, **score})
 
     print(json.dumps({"scores": scores, "aggregate": aggregate_scores([row for row in scores if row.get("matched")])}, indent=2, ensure_ascii=False))
+
+
+def _required_verifiers(category: str) -> list[str]:
+    if category == "data_query":
+        return ["path"]
+    if category == "experiment_planning":
+        return ["path", "command", "artifact"]
+    if category == "result_reasoning":
+        return ["metric", "artifact"]
+    return []
 
 
 if __name__ == "__main__":

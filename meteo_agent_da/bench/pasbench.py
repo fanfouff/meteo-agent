@@ -116,6 +116,7 @@ def aggregate_scores(scores: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
         "tool_precision",
         "tool_success_rate",
         "artifact_recall",
+        "verifier_pass_rate",
         "pass_rate",
         "repeated_tool_calls",
         "tool_steps",

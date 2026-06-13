@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from .memory import WorkingMemory
-from .planner import HeuristicPlanner
+from .planner import HeuristicPlanner, OpenAICompatiblePlanner
 from .schemas import AgentReport, AgentTask, ProjectConfig, StepKind, ToolResult, ToolStatus, TraceEvent
 from .tool_registry import ToolRegistry
 from ..tools.registry import build_default_registry
@@ -17,10 +17,11 @@ class MeteoAgentRuntime:
         config: Optional[ProjectConfig] = None,
         registry: Optional[ToolRegistry] = None,
         run_root: Optional[Path] = None,
+        planner: Optional[object] = None,
     ) -> None:
         self.config = config or ProjectConfig()
         self.registry = registry or build_default_registry()
-        self.planner = HeuristicPlanner()
+        self.planner = planner or self._build_planner()
         self.run_root = run_root or Path.cwd() / "runs"
 
     def run(self, task: AgentTask) -> AgentReport:
@@ -71,7 +72,7 @@ class MeteoAgentRuntime:
             tool_results=results,
             artifacts=artifacts,
             next_steps=[
-                "Replace the heuristic planner with an LLM planner once the tool contracts are stable.",
+                "Run the same PASBench-DA task with --planner llm to compare heuristic and LLM planning.",
                 "Add PASBench-DA tasks for this workflow and convert successful traces into SFT samples.",
             ],
         )
@@ -91,3 +92,8 @@ class MeteoAgentRuntime:
         ]
         lines.extend(f"- {result.name}: {result.summary}" for result in results)
         return "\n".join(lines)
+
+    def _build_planner(self) -> object:
+        if self.config.planner_backend == "llm":
+            return OpenAICompatiblePlanner(self.config, self.registry.specs())
+        return HeuristicPlanner()

@@ -52,6 +52,29 @@ python -m meteo_agent_da.cli \
   --dry-run
 ```
 
+配置文件默认读取：
+
+```bash
+configs/default.yaml
+```
+
+也可以用环境变量覆盖配置项，例如：
+
+```bash
+export METEO_AGENT_DA_PROJECT_ROOT=/path/to/satellite_assimilation_v2
+export METEO_AGENT_DA_DEFAULT_DATA_ROOT=/path/to/npz
+```
+
+启用 OpenAI-compatible LLM planner：
+
+```bash
+export OPENAI_API_KEY=...
+python -m meteo_agent_da.cli \
+  --planner llm \
+  --task "检查 50pct split，规划 PASNet 与 Swin-UNet 对比实验" \
+  --dry-run
+```
+
 运行 smoke test：
 
 ```bash
@@ -99,6 +122,18 @@ python -m meteo_agent_da.post_training.build_preference_data \
 ## 当前范围
 
 脚手架默认对昂贵的训练和评估命令使用 **dry-run**。只有在确认路径、GPU 分配和输出目录之后，才建议关闭 dry-run。
+
+真实执行 PASNet 命令需要三重显式开关：
+
+```bash
+python -m meteo_agent_da.cli \
+  --task "训练 PASNet 100pct split" \
+  --execute \
+  --allow-risky \
+  --run-commands
+```
+
+没有同时打开这些开关时，`pasnet_runner` 只生成命令和诊断信息。
 
 默认 PASNet 项目根目录为：
 

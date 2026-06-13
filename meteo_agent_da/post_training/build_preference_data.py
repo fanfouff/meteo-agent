@@ -30,9 +30,14 @@ def _assistant_content(report: Dict[str, Any]) -> str:
     )
 
 
-def reports_to_preference(chosen_path: Path, rejected_path: Path) -> Dict[str, Any]:
+def reports_to_preference(chosen_path: Path, rejected_path: Path, allow_error_chosen: bool = False) -> Dict[str, Any]:
     chosen = _load(chosen_path)
     rejected = _load(rejected_path)
+    if chosen.get("status") != "ok" and not allow_error_chosen:
+        raise ValueError(
+            f"chosen report must have status=ok; got {chosen.get('status')} from {chosen_path}. "
+            "Use --allow-error-chosen only for debugging, not for DPO training data."
+        )
     prompt = chosen.get("request") or rejected.get("request", "")
     return {
         "prompt": [
@@ -58,6 +63,7 @@ def main() -> None:
     parser.add_argument("--chosen", required=True, nargs="+")
     parser.add_argument("--rejected", required=True, nargs="+")
     parser.add_argument("--output", default="post_training_preferences.jsonl")
+    parser.add_argument("--allow-error-chosen", action="store_true", default=False)
     args = parser.parse_args()
 
     if len(args.chosen) != len(args.rejected):
@@ -66,7 +72,10 @@ def main() -> None:
     output = Path(args.output)
     with output.open("w", encoding="utf-8") as f:
         for chosen, rejected in zip(args.chosen, args.rejected):
-            sample = reports_to_preference(Path(chosen), Path(rejected))
+            try:
+                sample = reports_to_preference(Path(chosen), Path(rejected), allow_error_chosen=args.allow_error_chosen)
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
             f.write(json.dumps(sample, ensure_ascii=False) + "\n")
     print(f"Wrote preference samples to {output}")
 
