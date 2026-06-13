@@ -39,8 +39,9 @@ def run_data_indexer(call: ToolCall, config: ProjectConfig) -> ToolResult:
         f"Indexed data_root={data_root}; split={split_hint}; "
         f"split_file_exists={data['split_file_exists']}."
     )
-    status = ToolStatus.OK if data["data_root_exists"] else ToolStatus.ERROR
-    return ToolResult(name=call.name, status=status, summary=summary, data=data)
+    status = ToolStatus.OK if data["data_root_exists"] and data["split_file_exists"] else ToolStatus.ERROR
+    error = None if status == ToolStatus.OK else "missing_data_root_or_split_file"
+    return ToolResult(name=call.name, status=status, summary=summary, data=data, error=error)
 
 
 def _resolve_split_file(config: ProjectConfig, split_hint: str) -> Optional[Path]:

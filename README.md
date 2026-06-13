@@ -58,6 +58,44 @@ python -m meteo_agent_da.cli \
 python -m unittest discover -s tests
 ```
 
+启动一个多轮对话式同化科研 Agent：
+
+```bash
+python -m meteo_agent_da.cli --chat --dry-run
+```
+
+交互式会话支持：
+
+- `/memory`：查看当前会话记忆；
+- `/session`：查看 session id 和存储路径；
+- `/dry-run on|off`：切换 dry-run；
+- `/exit`：退出。
+
+生成 text-only baseline report：
+
+```bash
+python -m meteo_agent_da.baselines.text_only \
+  --task "Compare PASNet and Swin-UNet on the 50pct split and generate a paper table." \
+  --output runs/text_only_report.json
+```
+
+评估一个或多个 report：
+
+```bash
+python -m meteo_agent_da.bench.evaluate_trace \
+  --tasks examples/pasbench_da_sample.jsonl \
+  --report runs/demo/report.json runs/text_only_report.json
+```
+
+构造 DPO-style preference 数据：
+
+```bash
+python -m meteo_agent_da.post_training.build_preference_data \
+  --chosen runs/tool_agent/report.json \
+  --rejected runs/text_only_report.json \
+  --output post_training_preferences.jsonl
+```
+
 ## 当前范围
 
 脚手架默认对昂贵的训练和评估命令使用 **dry-run**。只有在确认路径、GPU 分配和输出目录之后，才建议关闭 dry-run。
