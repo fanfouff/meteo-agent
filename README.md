@@ -1,50 +1,50 @@
 # MeteoAgent-DA
 
-MeteoAgent-DA is a vertical-domain research agent for satellite data assimilation workflows.
-It focuses on the project line you already own: **FY-3F MWTS-III + ERA5 + PASNet-DA temperature-profile correction**.
+MeteoAgent-DA 是一个面向**卫星资料同化科研工作流**的气象垂域 Agent。
+它聚焦你已有的主线资产：**FY-3F MWTS-III + ERA5 + PASNet-DA 温度廓线订正**。
 
-The project is intentionally narrower than a general weather QA agent. Its job is to help a researcher:
+这个项目刻意不做泛化的天气问答助手，而是服务于科研工作流。它的目标是帮助研究者：
 
-- inspect FY-3F/ERA5 `.npz` datasets and split files;
-- generate PASNet/Swin-UNet/FuXi-DA training or inference commands;
-- run or dry-run controlled experiments;
-- summarize RMSE/MAE/vertical-profile diagnostics;
-- create paper-ready tables, captions, and result paragraphs;
-- collect successful tool trajectories for SFT/DPO/GRPO-style post-training.
+- 检查 FY-3F/ERA5 `.npz` 数据集和数据划分文件；
+- 生成 PASNet、Swin-UNet、FuXi-DA 等模型的训练或推理命令；
+- 以 dry-run 或受控执行方式运行实验；
+- 汇总 RMSE、MAE、垂直廓线误差和空间误差诊断；
+- 生成可直接进入论文的表格、图注和结果分析段落；
+- 收集成功工具调用轨迹，为 SFT/DPO/GRPO 等后训练流程提供数据。
 
-## Design
+## 设计思路
 
 ```text
-planner -> tool caller -> executor -> reflector -> reporter
+规划器 -> 工具调用器 -> 执行器 -> 反思器 -> 报告器
 ```
 
-The first version is a lightweight local harness rather than a heavy multi-agent platform. It borrows the useful engineering ideas from pico-style coding agents:
+当前版本是一个轻量级本地 Agent Harness，而不是复杂的多智能体平台。它吸收了 pico 类代码 Agent 中比较有价值的工程设计：
 
-- explicit tool registry;
-- structured tool inputs and outputs;
-- bounded command execution;
-- run traces and artifacts;
-- short working memory;
-- benchmark tasks with verifiable outputs.
+- 显式工具注册表；
+- 结构化工具输入和输出；
+- 有边界的命令执行；
+- 运行 trace 和 artifacts 落盘；
+- 短期工作记忆；
+- 带可验证输出的 benchmark 任务。
 
-## Repository Layout
+## 仓库结构
 
 ```text
 meteo_agent_da/
-  agent/              # reflective runtime, schemas, memory
-  tools/              # PASNet-DA domain tools
-  sandbox/            # controlled command executor
-  bench/              # PASBench-DA samples and evaluator helpers
-  post_training/      # trace-to-SFT/preference conversion utilities
+  agent/              # 反思式运行时、数据结构、工作记忆
+  tools/              # PASNet-DA 领域工具
+  sandbox/            # 受控命令执行器
+  bench/              # PASBench-DA 样例和评测辅助工具
+  post_training/      # trace 到 SFT/preference 数据的转换工具
 configs/
 docs/
 examples/
 tests/
 ```
 
-## Quick Start
+## 快速开始
 
-From this directory:
+在当前目录执行：
 
 ```bash
 python -m meteo_agent_da.cli \
@@ -52,31 +52,31 @@ python -m meteo_agent_da.cli \
   --dry-run
 ```
 
-Run the smoke test:
+运行 smoke test：
 
 ```bash
 python -m unittest discover -s tests
 ```
 
-## Current Scope
+## 当前范围
 
-The scaffold defaults to **dry-run** for expensive training/evaluation commands. Turning dry-run off should be done only after checking paths, GPU allocation, and output directories.
+脚手架默认对昂贵的训练和评估命令使用 **dry-run**。只有在确认路径、GPU 分配和输出目录之后，才建议关闭 dry-run。
 
-The default PASNet project root is:
+默认 PASNet 项目根目录为：
 
 ```text
 /home/lrx/Unet/satellite_assimilation_v2
 ```
 
-## Paper Direction
+## 论文方向
 
-Working title:
+暂定题目：
 
-> MeteoAgent-DA: A Tool-Augmented and Post-Trained LLM Agent for Satellite Data Assimilation Research
+> MeteoAgent-DA: 面向卫星资料同化科研工作流的工具增强与后训练 LLM Agent
 
-Core contributions:
+核心贡献：
 
-1. an agentic environment for satellite data-assimilation research;
-2. PASBench-DA for tool-use, experiment-planning, result-reasoning, and paper-writing evaluation;
-3. executable trajectory post-training for domain research agents;
-4. validation on FY-3F MWTS-III / ERA5 / PASNet-DA workflows.
+1. 提出一个面向卫星资料同化科研的 agentic environment；
+2. 构建 PASBench-DA，用于评测工具调用、实验规划、结果解释和论文写作能力；
+3. 提出基于可执行科研轨迹的垂域 Agent 后训练流程；
+4. 在 FY-3F MWTS-III / ERA5 / PASNet-DA 工作流上验证有效性。
