@@ -98,13 +98,47 @@ python -m meteo_agent_da.bench.evaluate_trace \
   --report runs/demo/report.json runs/text_only_report.json
 ```
 
+批量运行 PASBench-DA 50 条任务并生成核心结果表：
+
+```bash
+python -m meteo_agent_da.bench.run_pasbench \
+  --tasks examples/pasbench_da_50.jsonl \
+  --method text_only pico heuristic_tool \
+  --attempts 1 \
+  --output-dir runs/pasbench_50
+```
+
+`pico` baseline 只通过外部命令调用，不 vendoring Pico 源码。需要启用时传入：
+
+```bash
+python -m meteo_agent_da.bench.run_pasbench \
+  --method pico \
+  --pico-command "pico --task {task}" \
+  --output-dir runs/pasbench_pico
+```
+
+当前批量 runner 会输出：
+
+- `scores.json` / `scores.csv`：逐任务评分；
+- `core_results.md` / `core_results.csv`：TSR、VER、TCR、CVR、AGR、HAL、Cost 表；
+- `successful_reports.txt`：`pass_rate=1` 的 report 路径，用于后训练数据过滤。
+
+从成功 trace 构造 SFT 数据：
+
+```bash
+python -m meteo_agent_da.post_training.build_sft_data \
+  --successful-reports-file runs/pasbench_50/successful_reports.txt \
+  --output runs/pasbench_50/post_training_sft.jsonl
+```
+
 构造 DPO-style preference 数据：
 
 ```bash
 python -m meteo_agent_da.post_training.build_preference_data \
-  --chosen runs/tool_agent/report.json \
-  --rejected runs/text_only_report.json \
-  --output post_training_preferences.jsonl
+  --scores-json runs/pasbench_50/scores.json \
+  --chosen-method heuristic_tool \
+  --rejected-method text_only \
+  --output runs/pasbench_50/post_training_preferences.jsonl
 ```
 
 ## 当前范围

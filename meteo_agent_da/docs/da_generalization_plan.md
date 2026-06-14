@@ -219,6 +219,15 @@ SFT-Qwen
 SFT-Qwen + DPO/GRPO
 ```
 
+### 本轮已落地的评测闭环
+
+- `examples/pasbench_da_50.jsonl`：50 条任务，覆盖 in-domain、negative/OOD 和 cross-domain profile planning。
+- `meteo_agent_da/bench/verifiers.py`：可执行 verifier，检查路径、命令、metric、artifact、cost 和 artifact hallucination。
+- `meteo_agent_da/bench/run_pasbench.py`：批量运行 `text_only | pico | heuristic_tool | qwen_tool | sft_qwen`，支持 `--attempts` 和核心结果表输出。
+- `meteo_agent_da/domains/profiles.py`：保留 `pasnet_satellite` 为第一个可执行 profile，并登记 `wrf_3dvar`、`enkf_cycle`、`radar_da`、`gnss_ro`、`conventional_obs`、`diagnostics_paper`。
+- `post_training/build_sft_data.py`：从 `trace.jsonl` 保留 plan、tool call、tool observation、reflection 和 final summary。
+- `post_training/build_preference_data.py`：可从 runner 的 `scores.json` 自动构造 `heuristic_tool` vs `text_only` 的 DPO-style pair。
+
 这条路线能同时服务三个叙事：
 
 - 面试：你不是只会调 API，而是在做可评测、可恢复、可审计的垂域 agent harness。
