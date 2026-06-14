@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Protocol
 
 from .schemas import AgentPlan, AgentTask, ToolCall
+
+
+class Planner(Protocol):
+    def plan(self, task: AgentTask) -> AgentPlan:
+        ...
 
 
 class HeuristicPlanner:

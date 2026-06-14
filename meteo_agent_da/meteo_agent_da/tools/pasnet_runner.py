@@ -11,6 +11,7 @@ def run_pasnet_runner(call: ToolCall, config: ProjectConfig) -> ToolResult:
     split_hint = str(call.arguments.get("split_hint") or "100pct")
     epochs = int(call.arguments.get("epochs") or 200)
     split_file = _resolve_split_file(config, split_hint)
+    split_file_exists = split_file.exists()
 
     commands = []
     for model in models:
@@ -75,15 +76,19 @@ def run_pasnet_runner(call: ToolCall, config: ProjectConfig) -> ToolResult:
         commands.append({"model": model_name, "exp_name": exp_name, "command": cmd, "shell": " ".join(cmd)})
 
     summary = f"Built {len(commands)} PASNet-DA command(s) for split {split_hint}; dry_run={config.dry_run}."
+    status = ToolStatus.OK if split_file_exists else ToolStatus.ERROR
+    error = None if split_file_exists else "split_file_missing"
     return ToolResult(
         name=call.name,
-        status=ToolStatus.OK,
+        status=status,
         summary=summary,
         data={
             "commands": commands,
             "split_file": str(split_file),
+            "split_file_exists": split_file_exists,
             "execute_note": "Commands are not executed by the scaffold. Review GPU and paths first.",
         },
+        error=error,
     )
 
 

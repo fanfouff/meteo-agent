@@ -6,5 +6,6 @@ __pycache__/
 
 runs/
 artifacts/
+sessions/
 post_training_sft.jsonl
 test_runtime_dry_run_generates_report/

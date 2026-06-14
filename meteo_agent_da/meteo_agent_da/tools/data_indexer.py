@@ -39,18 +39,34 @@ def run_data_indexer(call: ToolCall, config: ProjectConfig) -> ToolResult:
         f"Indexed data_root={data_root}; split={split_hint}; "
         f"split_file_exists={data['split_file_exists']}."
     )
-    status = ToolStatus.OK if data["data_root_exists"] else ToolStatus.ERROR
-    return ToolResult(name=call.name, status=status, summary=summary, data=data)
+    status = ToolStatus.OK if data["data_root_exists"] and data["split_file_exists"] else ToolStatus.ERROR
+    error = None if status == ToolStatus.OK else "missing_data_root_or_split_file"
+    return ToolResult(name=call.name, status=status, summary=summary, data=data, error=error)
 
 
 def _resolve_split_file(config: ProjectConfig, split_hint: str) -> Optional[Path]:
     split_dir = config.default_split_dir
+    canonical_hint = _canonical_split_hint(split_hint)
     candidates = [
         split_dir / f"split_{split_hint}.json",
+        split_dir / f"split_{canonical_hint}.json",
         split_dir / f"{split_hint}.json",
+        split_dir / f"{canonical_hint}.json",
         config.project_root / "train_ddp" / "splits" / f"fixed_split_{split_hint.replace('pct', '')}.json",
+        config.project_root / "train_ddp" / "splits" / f"fixed_split_{canonical_hint.replace('pct', '')}.json",
     ]
     for path in candidates:
         if path.exists():
             return path
     return candidates[0]
+
+
+def _canonical_split_hint(split_hint: str) -> str:
+    hint = split_hint.strip().lower()
+    if hint.endswith("pct"):
+        value = hint[:-3]
+        if value.isdigit():
+            return f"{int(value):03d}pct"
+    if hint.isdigit():
+        return f"{int(hint):03d}pct"
+    return hint

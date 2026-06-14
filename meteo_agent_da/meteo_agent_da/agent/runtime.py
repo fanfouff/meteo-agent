@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from .memory import WorkingMemory
-from .planner import HeuristicPlanner
+from .planner import HeuristicPlanner, Planner
 from .schemas import AgentReport, AgentTask, ProjectConfig, StepKind, ToolResult, ToolStatus, TraceEvent
 from .tool_registry import ToolRegistry
 from ..tools.registry import build_default_registry
@@ -16,11 +16,12 @@ class MeteoAgentRuntime:
         self,
         config: Optional[ProjectConfig] = None,
         registry: Optional[ToolRegistry] = None,
+        planner: Optional[Planner] = None,
         run_root: Optional[Path] = None,
     ) -> None:
         self.config = config or ProjectConfig()
         self.registry = registry or build_default_registry()
-        self.planner = HeuristicPlanner()
+        self.planner = planner or HeuristicPlanner()
         self.run_root = run_root or Path.cwd() / "runs"
 
     def run(self, task: AgentTask) -> AgentReport:
