@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meteo-agent-da"
+version = "0.1.0"
+description = "A satellite data-assimilation research agent for PASNet-DA workflows."
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+weather = ["numpy>=1.21", "xarray>=0.19", "netCDF4>=1.5", "matplotlib>=3.5"]
+
+[project.scripts]
+meteo-agent-da = "meteo_agent_da.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["meteo_agent_da*"]
