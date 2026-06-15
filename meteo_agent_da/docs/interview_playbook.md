@@ -1,5 +1,7 @@
 # MeteoAgent-DA 面试深挖与八股手册
 
+三天速成版见：`docs/three_day_interview_stack.md`。
+
 这份文档的目标不是背稿，而是让你在面试中能把项目讲成一个完整闭环：
 
 ```text
